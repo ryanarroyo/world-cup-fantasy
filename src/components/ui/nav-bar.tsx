@@ -37,11 +37,10 @@ export function NavBar() {
   };
 
   return (
-    <nav className="border-b border-border bg-card">
+    <nav className="border-b border-white/10 bg-black">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2 font-bold">
-          <span className="text-primary">WC</span>
-          <span className="text-secondary">2026</span>
+          <span className="text-white text-sm tracking-wide">WC Fantasy 2026</span>
         </Link>
 
         {user && (
