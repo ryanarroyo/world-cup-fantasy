@@ -55,6 +55,7 @@ export default async function PredictionsPage({
           matches={matches}
           existingPredictions={predictionMap}
           userId={user?.id ?? ""}
+          round={round}
         />
       )}
     </div>

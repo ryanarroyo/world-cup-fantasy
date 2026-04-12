@@ -43,9 +43,33 @@ export type Prediction = {
   predicted_home: number;
   predicted_away: number;
   predicted_winner_id: number | null;
+  is_confident: boolean;
   points_earned: number;
   created_at: string;
   updated_at: string;
+};
+
+export type UserStats = {
+  total_predictions: number;
+  correct_results: number;
+  exact_scores: number;
+  total_points: number;
+  result_accuracy_pct: number;
+  exact_accuracy_pct: number;
+  points_per_match: number;
+  best_round: { round: string; points: number } | null;
+  worst_round: { round: string; points: number } | null;
+  favorite_scoreline: { scoreline: string; count: number } | null;
+  tendency: { home_wins: number; away_wins: number; draws: number };
+  current_streak: number;
+  confident_picks: number;
+  confident_correct: number;
+  round_breakdown: Array<{
+    round: string;
+    predictions: number;
+    points: number;
+    avg_points: number;
+  }> | null;
 };
 
 export type League = {

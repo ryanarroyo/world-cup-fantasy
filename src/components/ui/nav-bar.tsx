@@ -10,6 +10,7 @@ const navLinks = [
   { href: "/bracket", label: "Bracket" },
   { href: "/predictions", label: "Predictions" },
   { href: "/leagues", label: "Leagues" },
+  { href: "/stats", label: "Stats" },
 ];
 
 export function NavBar() {

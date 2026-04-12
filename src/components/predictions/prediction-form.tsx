@@ -17,10 +17,12 @@ export function PredictionForm({
   matches,
   existingPredictions,
   userId,
+  round,
 }: {
   matches: MatchWithTeams[];
   existingPredictions: Map<number, Prediction>;
   userId: string;
+  round: string;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -45,7 +47,24 @@ export function PredictionForm({
     }
   );
 
-  const updatePrediction = (matchId: number, field: string, value: number | null) => {
+  const [confidences, setConfidences] = useState<Map<number, boolean>>(() => {
+    const map = new Map<number, boolean>();
+    for (const match of matches) {
+      const existing = existingPredictions.get(match.id);
+      if (existing) {
+        map.set(match.id, existing.is_confident);
+      }
+    }
+    return map;
+  });
+
+  const confidentCount = Array.from(confidences.values()).filter(Boolean).length;
+
+  const updatePrediction = (
+    matchId: number,
+    field: string,
+    value: number | null
+  ) => {
     setPredictions((prev) => {
       const next = new Map(prev);
       const existing = next.get(matchId) ?? {
@@ -61,6 +80,21 @@ export function PredictionForm({
     setError(null);
   };
 
+  const toggleConfidence = (matchId: number) => {
+    setConfidences((prev) => {
+      const next = new Map(prev);
+      const current = next.get(matchId) ?? false;
+      if (!current && confidentCount >= 3) {
+        setError("Max 3 confident picks per round.");
+        return prev;
+      }
+      next.set(matchId, !current);
+      setError(null);
+      return next;
+    });
+    setSuccess(false);
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setError(null);
@@ -69,7 +103,6 @@ export function PredictionForm({
     const supabase = createClient();
     const now = new Date().toISOString();
 
-    // Filter to only predictions for matches that haven't started
     const toSave = Array.from(predictions.values()).filter((p) => {
       const match = matches.find((m) => m.id === p.match_id);
       return match && match.kickoff_at > now;
@@ -88,6 +121,7 @@ export function PredictionForm({
         predicted_home: p.predicted_home,
         predicted_away: p.predicted_away,
         predicted_winner_id: p.predicted_winner_id,
+        is_confident: confidences.get(p.match_id) ?? false,
         updated_at: now,
       })),
       { onConflict: "user_id,match_id" }
@@ -115,15 +149,30 @@ export function PredictionForm({
             match={match}
             prediction={predictions.get(match.id) ?? null}
             existingPrediction={existingPredictions.get(match.id) ?? null}
+            isConfident={confidences.get(match.id) ?? false}
+            canToggleConfident={confidentCount < 3}
             onUpdate={updatePrediction}
+            onToggleConfidence={toggleConfidence}
           />
         ))}
       </div>
 
       {predictableCount > 0 && (
         <div className="sticky bottom-4 flex items-center justify-between rounded-xl border border-border bg-card p-4 shadow-lg">
-          <div className="text-sm text-muted-foreground">
-            {predictions.size} / {matches.length} predictions made
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <span>
+              {predictions.size} / {matches.length} predictions
+            </span>
+            <span className="flex items-center gap-1 text-secondary">
+              <svg
+                className="h-3.5 w-3.5"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+              </svg>
+              {confidentCount}/3 confident
+            </span>
           </div>
           <div className="flex items-center gap-3">
             {error && (
