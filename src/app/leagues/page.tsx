@@ -29,16 +29,22 @@ export default async function LeaguesPage() {
     ]),
   ];
 
-  let leagues: (League & { member_count: number })[] = [];
+  let leagues: (League & {
+    member_count: number;
+    members: { display_name: string; avatar_url: string | null }[];
+  })[] = [];
   if (allIds.length > 0) {
     const { data } = await supabase
       .from("leagues")
-      .select("*, league_members(count)")
+      .select("*, league_members(count, profile:profiles(display_name, avatar_url))")
       .in("id", allIds);
 
     leagues = (data ?? []).map((l: any) => ({
       ...l,
       member_count: l.league_members?.[0]?.count ?? 0,
+      members: (l.league_members ?? [])
+        .map((m: any) => m.profile)
+        .filter(Boolean),
     }));
   }
 
@@ -92,6 +98,30 @@ export default async function LeaguesPage() {
                       <span className="ml-2 text-xs text-secondary">Owner</span>
                     )}
                   </p>
+                  {league.members.length > 0 && (
+                    <div className="mt-2 flex items-center gap-1.5">
+                      {league.members.slice(0, 5).map((member, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+                        >
+                          {member.avatar_url && (
+                            <img
+                              src={member.avatar_url}
+                              alt=""
+                              className="h-3.5 w-3.5 rounded-full"
+                            />
+                          )}
+                          <span>{member.display_name}</span>
+                        </div>
+                      ))}
+                      {league.members.length > 5 && (
+                        <span className="text-xs text-muted-foreground">
+                          +{league.members.length - 5} more
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <svg
                   className="h-5 w-5 text-muted-foreground"
