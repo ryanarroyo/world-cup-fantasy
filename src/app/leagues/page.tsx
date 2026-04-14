@@ -8,19 +8,25 @@ export default async function LeaguesPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  console.log("[DEBUG] user id:", user!.id);
+
   // Get leagues the user is a member of
-  const { data: memberships } = await supabase
+  const { data: memberships, error: memberErr } = await supabase
     .from("league_members")
     .select("league_id")
     .eq("user_id", user!.id);
 
+  console.log("[DEBUG] memberships:", memberships, "error:", memberErr);
+
   const leagueIds = memberships?.map((m) => m.league_id) ?? [];
 
   // Also get leagues the user owns (they might not have joined their own)
-  const { data: ownedLeagues } = await supabase
+  const { data: ownedLeagues, error: ownedErr } = await supabase
     .from("leagues")
     .select("id")
     .eq("owner_id", user!.id);
+
+  console.log("[DEBUG] ownedLeagues:", ownedLeagues, "error:", ownedErr);
 
   const allIds = [
     ...new Set([

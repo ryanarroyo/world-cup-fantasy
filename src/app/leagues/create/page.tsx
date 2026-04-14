@@ -29,9 +29,10 @@ export default function CreateLeaguePage() {
     }
 
     // Create the league
+    const inviteCode = crypto.randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase();
     const { data: league, error: createError } = await supabase
       .from("leagues")
-      .insert({ name: name.trim(), owner_id: user.id })
+      .insert({ name: name.trim(), owner_id: user.id, invite_code: inviteCode })
       .select()
       .single();
 
@@ -42,9 +43,15 @@ export default function CreateLeaguePage() {
     }
 
     // Auto-join the league as a member
-    await supabase
+    const { error: joinError } = await supabase
       .from("league_members")
       .insert({ league_id: league.id, user_id: user.id });
+
+    if (joinError) {
+      setError(joinError.message);
+      setSaving(false);
+      return;
+    }
 
     router.push(`/leagues/${league.id}`);
   };
