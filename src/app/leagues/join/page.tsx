@@ -65,7 +65,7 @@ function JoinLeagueForm() {
       return;
     }
 
-    router.push(`/leagues/${league.id}`);
+    window.location.href = `/leagues/${league.id}`;
   };
 
   return (

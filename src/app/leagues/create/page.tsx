@@ -53,7 +53,7 @@ export default function CreateLeaguePage() {
       return;
     }
 
-    router.push(`/leagues/${league.id}`);
+    window.location.href = `/leagues/${league.id}`;
   };
 
   return (
