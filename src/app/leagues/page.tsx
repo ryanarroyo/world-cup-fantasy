@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import type { League } from "@/lib/types/database";
 
+export const dynamic = "force-dynamic";
+
 export default async function LeaguesPage() {
   const supabase = await createClient();
   const {

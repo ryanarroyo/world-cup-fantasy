@@ -7,6 +7,8 @@ import { MatchPredictions } from "@/components/leagues/match-predictions";
 import type { Profile, UserScore } from "@/lib/types/database";
 import { LeagueTabs } from "./league-tabs";
 
+export const dynamic = "force-dynamic";
+
 export default async function LeagueDetailPage({
   params,
   searchParams,
