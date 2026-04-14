@@ -33,18 +33,36 @@ export default async function LeagueDetailPage({
 
   if (!league) notFound();
 
-  // Get members with profiles and scores
-  const { data: members } = await supabase
-    .from("league_members")
-    .select("*, profile:profiles(*), user_score:user_scores(*)")
-    .eq("league_id", id)
-    .order("joined_at");
+  // Get members, profiles, and scores separately to avoid join failures
+  const [{ data: members }, { data: profiles }, { data: scores }] =
+    await Promise.all([
+      supabase
+        .from("league_members")
+        .select("*")
+        .eq("league_id", id)
+        .order("joined_at"),
+      supabase.from("profiles").select("*"),
+      supabase.from("user_scores").select("*"),
+    ]);
 
-  const sortedMembers = (members ?? []).sort((a: any, b: any) => {
-    const aScore = a.user_score?.total_points ?? 0;
-    const bScore = b.user_score?.total_points ?? 0;
-    return bScore - aScore;
-  });
+  const profileMap = new Map(
+    (profiles ?? []).map((p: any) => [p.id, p])
+  );
+  const scoreMap = new Map(
+    (scores ?? []).map((s: any) => [s.user_id, s])
+  );
+
+  const sortedMembers = (members ?? [])
+    .map((m: any) => ({
+      ...m,
+      profile: profileMap.get(m.user_id) ?? null,
+      user_score: scoreMap.get(m.user_id) ?? null,
+    }))
+    .sort((a: any, b: any) => {
+      const aScore = a.user_score?.total_points ?? 0;
+      const bScore = b.user_score?.total_points ?? 0;
+      return bScore - aScore;
+    });
 
   const memberUserIds = sortedMembers.map((m: any) => m.user_id);
 
@@ -153,7 +171,7 @@ export default async function LeagueDetailPage({
                             <span
                               className={isCurrentUser ? "font-semibold" : ""}
                             >
-                              {profile?.display_name ?? "Unknown"}
+                              {profile?.display_name ?? member.email ?? "Unknown"}
                             </span>
                             {isCurrentUser && (
                               <span className="text-xs text-primary">
