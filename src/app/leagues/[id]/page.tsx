@@ -5,6 +5,7 @@ import { RoundBreakdown } from "@/components/leagues/round-breakdown";
 import { RecentActivity } from "@/components/leagues/recent-activity";
 import { MatchPredictions } from "@/components/leagues/match-predictions";
 import type { Profile, UserScore } from "@/lib/types/database";
+import { DeleteLeague } from "@/components/leagues/delete-league";
 import { LeagueTabs } from "./league-tabs";
 
 export const dynamic = "force-dynamic";
@@ -80,11 +81,16 @@ export default async function LeagueDetailPage({
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">{league.name}</h1>
-        <p className="text-sm text-muted-foreground">
-          {sortedMembers.length}{" "}
-          {sortedMembers.length === 1 ? "member" : "members"}
-        </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">{league.name}</h1>
+            <p className="text-sm text-muted-foreground">
+              {sortedMembers.length}{" "}
+              {sortedMembers.length === 1 ? "member" : "members"}
+            </p>
+          </div>
+          {isOwner && <DeleteLeague leagueId={league.id} />}
+        </div>
       </div>
 
       {/* Invite section */}
