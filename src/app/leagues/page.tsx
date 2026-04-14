@@ -42,17 +42,31 @@ export default async function LeaguesPage() {
     members: { display_name: string; avatar_url: string | null }[];
   })[] = [];
   if (allIds.length > 0) {
-    const { data } = await supabase
-      .from("leagues")
-      .select("*, league_members(count, profile:profiles(display_name, avatar_url))")
-      .in("id", allIds);
+    // Fetch leagues and member profiles separately (PostgREST doesn't support count + nested select)
+    const [{ data: leagueData, error: leagueErr }, { data: memberData, error: memberDataErr }] = await Promise.all([
+      supabase
+        .from("leagues")
+        .select("*, league_members(count)")
+        .in("id", allIds),
+      supabase
+        .from("league_members")
+        .select("league_id, profile:profiles(display_name, avatar_url)")
+        .in("league_id", allIds),
+    ]);
 
-    leagues = (data ?? []).map((l: any) => ({
+    console.log("[DEBUG] leagueData:", leagueData, "error:", leagueErr);
+    console.log("[DEBUG] memberData:", memberData, "error:", memberDataErr);
+
+    const membersByLeague = (memberData ?? []).reduce((acc: any, m: any) => {
+      if (!acc[m.league_id]) acc[m.league_id] = [];
+      if (m.profile) acc[m.league_id].push(m.profile);
+      return acc;
+    }, {});
+
+    leagues = (leagueData ?? []).map((l: any) => ({
       ...l,
       member_count: l.league_members?.[0]?.count ?? 0,
-      members: (l.league_members ?? [])
-        .map((m: any) => m.profile)
-        .filter(Boolean),
+      members: membersByLeague[l.id] ?? [],
     }));
   }
 
