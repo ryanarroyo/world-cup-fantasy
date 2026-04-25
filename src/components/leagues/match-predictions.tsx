@@ -217,13 +217,25 @@ export function MatchPredictions({
                             {pred ? (
                               <span
                                 className={
-                                  pred.points_earned > 0
+                                  pred.points_earned + (pred.upset_bonus ?? 0) >
+                                  0
                                     ? "text-primary"
                                     : "text-muted-foreground"
                                 }
                               >
-                                {pred.points_earned > 0 ? "+" : ""}
-                                {pred.points_earned}
+                                {pred.points_earned + (pred.upset_bonus ?? 0) >
+                                0
+                                  ? "+"
+                                  : ""}
+                                {pred.points_earned + (pred.upset_bonus ?? 0)}
+                                {pred.upset_bonus > 0 && (
+                                  <span
+                                    className="ml-1 text-[10px] font-medium text-amber-500"
+                                    title={`Upset bonus: +${pred.upset_bonus}`}
+                                  >
+                                    🎯
+                                  </span>
+                                )}
                               </span>
                             ) : (
                               <span className="text-muted-foreground">—</span>

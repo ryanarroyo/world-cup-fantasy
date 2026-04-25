@@ -33,6 +33,12 @@ export function RoundBreakdown({
                   {r.label}
                 </th>
               ))}
+              <th
+                className="px-2 py-2 text-center font-medium"
+                title="Upset bonus points (capped: top 3 per round count)"
+              >
+                🎯
+              </th>
               <th className="px-3 py-2 text-center font-medium">Total</th>
             </tr>
           </thead>
@@ -71,6 +77,11 @@ export function RoundBreakdown({
                       {score?.[r.key] ?? 0}
                     </td>
                   ))}
+                  <td className="px-2 py-2 text-center text-xs font-medium text-amber-500">
+                    {score?.upset_bonus_points
+                      ? `+${score.upset_bonus_points}`
+                      : "—"}
+                  </td>
                   <td className="px-3 py-2 text-center text-xs font-bold">
                     {score?.total_points ?? 0}
                   </td>

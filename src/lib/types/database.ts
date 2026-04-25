@@ -47,6 +47,7 @@ export type Prediction = {
   predicted_winner_id: number | null;
   is_confident: boolean;
   points_earned: number;
+  upset_bonus: number;
   created_at: string;
   updated_at: string;
 };
@@ -66,6 +67,17 @@ export type UserStats = {
   current_streak: number;
   confident_picks: number;
   confident_correct: number;
+  upset_picks_landed: number;
+  upset_bonus_earned: number;
+  biggest_upset: {
+    bonus: number;
+    home_code: string;
+    away_code: string;
+    home_score: number;
+    away_score: number;
+    home_rank: number;
+    away_rank: number;
+  } | null;
   round_breakdown: Array<{
     round: string;
     predictions: number;
@@ -99,6 +111,7 @@ export type UserScore = {
   qf_points: number;
   sf_points: number;
   final_points: number;
+  upset_bonus_points: number;
   correct_results: number;
   correct_scores: number;
   updated_at: string;

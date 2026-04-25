@@ -35,11 +35,15 @@ export function RecentActivity({
     <div className="space-y-4">
       {matches.map((match: any) => {
         const matchPreds = predsByMatch.get(match.id) ?? [];
-        // Sort by points earned descending
-        matchPreds.sort((a: any, b: any) => b.points_earned - a.points_earned);
+        // Sort by total earned (base + upset bonus) descending
+        matchPreds.sort(
+          (a: any, b: any) =>
+            b.points_earned + (b.upset_bonus ?? 0) -
+            (a.points_earned + (a.upset_bonus ?? 0))
+        );
 
         const totalPoints = matchPreds.reduce(
-          (sum: number, p: any) => sum + p.points_earned,
+          (sum: number, p: any) => sum + p.points_earned + (p.upset_bonus ?? 0),
           0
         );
 
@@ -130,11 +134,25 @@ export function RecentActivity({
                             Exact
                           </span>
                         )}
+                        {pred.upset_bonus > 0 && (
+                          <span
+                            className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-medium text-amber-500"
+                            title={`Upset bonus: +${pred.upset_bonus} pts`}
+                          >
+                            🎯 +{pred.upset_bonus}
+                          </span>
+                        )}
                         <span
-                          className={`text-xs font-bold ${pred.points_earned > 0 ? "text-primary" : "text-destructive"}`}
+                          className={`text-xs font-bold ${
+                            pred.points_earned + (pred.upset_bonus ?? 0) > 0
+                              ? "text-primary"
+                              : "text-destructive"
+                          }`}
                         >
-                          {pred.points_earned > 0 ? "+" : ""}
-                          {pred.points_earned} pts
+                          {pred.points_earned + (pred.upset_bonus ?? 0) > 0
+                            ? "+"
+                            : ""}
+                          {pred.points_earned + (pred.upset_bonus ?? 0)} pts
                         </span>
                       </div>
                     </div>

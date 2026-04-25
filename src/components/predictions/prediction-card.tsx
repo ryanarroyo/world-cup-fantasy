@@ -1,6 +1,7 @@
 "use client";
 
 import type { MatchWithTeams, Prediction } from "@/lib/types/database";
+import { previewUpsetBonus } from "@/lib/upset";
 
 type PredictionInput = {
   match_id: number;
@@ -37,6 +38,22 @@ export function PredictionCard({
 
   const showConfidentBadge =
     (isLocked || isFinished) && (existingPrediction?.is_confident ?? false);
+
+  // Live upset bonus preview while user is editing (uses entered scores)
+  const livePreview =
+    !isLocked && prediction
+      ? previewUpsetBonus({
+          homeRank: match.home_team?.fifa_rank ?? null,
+          awayRank: match.away_team?.fifa_rank ?? null,
+          predictedHome: homeScore,
+          predictedAway: awayScore,
+          isConfident,
+        })
+      : null;
+
+  // Post-match: actual upset bonus earned (stored on prediction)
+  const earnedUpsetBonus =
+    isFinished && existingPrediction ? existingPrediction.upset_bonus : 0;
 
   return (
     <div
@@ -120,11 +137,34 @@ export function PredictionCard({
             <span
               className={`font-bold ${existingPrediction.points_earned > 0 ? "text-primary" : "text-destructive"}`}
             >
-              +{existingPrediction.points_earned} pts
+              +{existingPrediction.points_earned + earnedUpsetBonus} pts
+              {earnedUpsetBonus > 0 && (
+                <span
+                  className="ml-1 text-xs font-medium text-amber-500"
+                  title={`Upset bonus: +${earnedUpsetBonus} pts`}
+                >
+                  (incl. +{earnedUpsetBonus} 🎯)
+                </span>
+              )}
             </span>
           )}
         </div>
       </div>
+
+      {/* Live upset preview while editing */}
+      {livePreview && (
+        <div
+          className="mb-2 flex items-center gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[11px] font-medium text-amber-500"
+          title={`Pick the underdog: rank gap qualifies as a ${livePreview.tier} upset`}
+        >
+          <span>🎯</span>
+          <span>
+            Upset pick — bonus +{livePreview.bonus} pts
+            {livePreview.kind === "draw" ? " (predicted draw)" : ""}
+            {isConfident && " · w/ 1.5x"}
+          </span>
+        </div>
+      )}
 
       {/* Match prediction inputs */}
       <div className="space-y-2">

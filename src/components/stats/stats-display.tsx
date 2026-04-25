@@ -85,6 +85,48 @@ export function StatsDisplay({ stats }: { stats: UserStats }) {
         />
       </div>
 
+      {/* Upset bonus highlight (only when relevant) */}
+      {(stats.upset_picks_landed > 0 || stats.biggest_upset) && (
+        <div className="rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 to-amber-500/5 p-5">
+          <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-amber-500">
+            🎯 Upset Bonus
+          </div>
+          <div className="mt-2 grid gap-4 sm:grid-cols-3">
+            <div>
+              <div className="text-3xl font-bold text-amber-500">
+                +{stats.upset_bonus_earned}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Total bonus pts (uncapped)
+              </div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-foreground">
+                {stats.upset_picks_landed}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Upsets predicted correctly
+              </div>
+            </div>
+            {stats.biggest_upset && (
+              <div>
+                <div className="text-lg font-bold text-foreground">
+                  {stats.biggest_upset.home_code} {stats.biggest_upset.home_score}–
+                  {stats.biggest_upset.away_score} {stats.biggest_upset.away_code}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Biggest call · +{stats.biggest_upset.bonus} pts (rank gap{" "}
+                  {Math.abs(
+                    stats.biggest_upset.home_rank - stats.biggest_upset.away_rank
+                  )}
+                  )
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Best / Worst round + Confidence */}
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-border bg-card p-5">
