@@ -1,5 +1,6 @@
 import type { Team, MatchWithTeams } from "@/lib/types/database";
 import { MatchCard } from "./match-card";
+import { PotDot } from "./team-badge";
 
 type GroupStanding = {
   team: Team;
@@ -98,6 +99,7 @@ export function GroupCard({
           <thead>
             <tr className="border-b border-border text-muted-foreground">
               <th className="px-3 py-2 text-left font-medium">Team</th>
+              <th className="px-1 py-2 text-center font-medium" title="FIFA World Ranking">Rk</th>
               <th className="px-1 py-2 text-center font-medium">P</th>
               <th className="px-1 py-2 text-center font-medium">W</th>
               <th className="px-1 py-2 text-center font-medium">D</th>
@@ -126,7 +128,11 @@ export function GroupCard({
                       className="h-3.5 w-5"
                     />
                     <span className="font-medium">{s.team.code}</span>
+                    <PotDot pot={s.team.pot} />
                   </div>
+                </td>
+                <td className="px-1 py-1.5 text-center text-muted-foreground">
+                  {s.team.fifa_rank ?? "—"}
                 </td>
                 <td className="px-1 py-1.5 text-center">{s.played}</td>
                 <td className="px-1 py-1.5 text-center">{s.won}</td>
@@ -143,7 +149,7 @@ export function GroupCard({
       </div>
 
       {/* Key */}
-      <div className="flex gap-4 px-4 py-2 text-[10px] text-muted-foreground">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 px-4 py-2 text-[10px] text-muted-foreground">
         <span className="flex items-center gap-1">
           <span className="inline-block h-2 w-2 rounded-full bg-primary/30" />
           Qualifies
@@ -151,6 +157,18 @@ export function GroupCard({
         <span className="flex items-center gap-1">
           <span className="inline-block h-2 w-2 rounded-full bg-secondary/30" />
           Possible 3rd
+        </span>
+        <span className="flex items-center gap-1" title="Pot 1 (highest seed)">
+          <PotDot pot={1} /> P1
+        </span>
+        <span className="flex items-center gap-1" title="Pot 2">
+          <PotDot pot={2} /> P2
+        </span>
+        <span className="flex items-center gap-1" title="Pot 3">
+          <PotDot pot={3} /> P3
+        </span>
+        <span className="flex items-center gap-1" title="Pot 4">
+          <PotDot pot={4} /> P4
         </span>
       </div>
 

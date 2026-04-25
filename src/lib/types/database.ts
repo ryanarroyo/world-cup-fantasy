@@ -5,6 +5,8 @@ export type Team = {
   flag_url: string;
   group_letter: string;
   api_football_id: number | null;
+  fifa_rank: number | null;
+  pot: 1 | 2 | 3 | 4 | null;
   created_at: string;
 };
 

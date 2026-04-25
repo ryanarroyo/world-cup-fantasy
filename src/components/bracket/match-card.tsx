@@ -37,7 +37,7 @@ export function MatchCard({ match }: { match: MatchWithTeams }) {
 
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <TeamBadge team={match.home_team} />
+          <TeamBadge team={match.home_team} showRank showPot />
           <span
             className={`min-w-[1.5rem] text-center text-sm font-bold ${
               isFinished && match.winner_team_id === match.home_team_id
@@ -49,7 +49,7 @@ export function MatchCard({ match }: { match: MatchWithTeams }) {
           </span>
         </div>
         <div className="flex items-center justify-between">
-          <TeamBadge team={match.away_team} />
+          <TeamBadge team={match.away_team} showRank showPot />
           <span
             className={`min-w-[1.5rem] text-center text-sm font-bold ${
               isFinished && match.winner_team_id === match.away_team_id
