@@ -151,6 +151,7 @@ export type H2HDraft = {
   first_pick_user_id: string | null;
   current_pick_number: number;
   current_turn_started_at: string | null;
+  cancel_requested_by: string | null;
   created_at: string;
   updated_at: string;
 };

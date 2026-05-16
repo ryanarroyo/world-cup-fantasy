@@ -1,12 +1,16 @@
 import { InviteLink } from "@/components/leagues/invite-link";
 import { DeleteLeague } from "@/components/leagues/delete-league";
 import { H2HLobby } from "@/components/leagues/h2h-lobby";
+import { H2HDraftRoom } from "@/components/leagues/h2h-draft-room";
 import type {
+  H2HAutopickQueueEntry,
   H2HDraft,
+  H2HDraftPick,
   H2HDraftStatus,
   League,
   LeagueMember,
   Profile,
+  Team,
 } from "@/lib/types/database";
 
 type MemberWithProfile = LeagueMember & { profile: Profile | null };
@@ -28,22 +32,35 @@ export function H2HLeagueView({
   members,
   readyUserIds,
   currentUserId,
+  teams = [],
+  picks = [],
+  autopickQueue = [],
 }: {
   league: League;
   draft: H2HDraft | null;
   members: MemberWithProfile[];
   readyUserIds: string[];
   currentUserId: string | undefined;
+  teams?: Team[];
+  picks?: H2HDraftPick[];
+  autopickQueue?: H2HAutopickQueueEntry[];
 }) {
   const isOwner = league.owner_id === currentUserId;
   const memberCount = members.length;
   const needsOpponent = memberCount < 2;
   const status: H2HDraftStatus = draft?.status ?? "LOBBY";
   const statusCopy = STATUS_COPY[status];
+  const draftActive = status === "DRAFTING" || status === "COMPLETE";
   const showLobby =
     !needsOpponent &&
     currentUserId !== undefined &&
+    !draftActive &&
     status !== "CANCELLED";
+  const showDraftRoom =
+    draftActive &&
+    draft !== null &&
+    currentUserId !== undefined &&
+    members.length === 2;
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-6">
@@ -62,7 +79,7 @@ export function H2HLeagueView({
         </div>
       </div>
 
-      <StatusBanner statusCopy={statusCopy} />
+      {!showDraftRoom && <StatusBanner statusCopy={statusCopy} />}
 
       {needsOpponent && (
         <div className="mb-6 rounded-xl border border-border bg-card p-4">
@@ -73,7 +90,19 @@ export function H2HLeagueView({
         </div>
       )}
 
-      {showLobby ? (
+      {showDraftRoom ? (
+        <div className="mb-6">
+          <H2HDraftRoom
+            leagueId={league.id}
+            initialDraft={draft!}
+            members={members}
+            teams={teams}
+            initialPicks={picks}
+            initialQueue={autopickQueue}
+            currentUserId={currentUserId!}
+          />
+        </div>
+      ) : showLobby ? (
         <div className="mb-6">
           <H2HLobby
             leagueId={league.id}
@@ -128,7 +157,7 @@ export function H2HLeagueView({
         </div>
       )}
 
-      <RulesCard />
+      {!showDraftRoom && <RulesCard />}
     </div>
   );
 }
