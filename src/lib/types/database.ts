@@ -86,12 +86,15 @@ export type UserStats = {
   }> | null;
 };
 
+export type LeagueMode = "PREDICTIONS" | "H2H_DRAFT";
+
 export type League = {
   id: string;
   name: string;
   invite_code: string;
   owner_id: string;
   max_members: number;
+  mode: LeagueMode;
   created_at: string;
 };
 
@@ -131,4 +134,64 @@ export type PredictionWithMatch = Prediction & {
 export type LeagueMemberWithProfile = LeagueMember & {
   profile: Profile;
   user_score: UserScore | null;
+};
+
+// H2H Draft mode ------------------------------------------------------------
+
+export type H2HDraftStatus =
+  | "LOBBY"
+  | "READY"
+  | "DRAFTING"
+  | "COMPLETE"
+  | "CANCELLED";
+
+export type H2HDraft = {
+  league_id: string;
+  status: H2HDraftStatus;
+  first_pick_user_id: string | null;
+  current_pick_number: number;
+  current_turn_started_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type H2HDraftPick = {
+  id: number;
+  league_id: string;
+  pick_number: number;
+  user_id: string;
+  team_id: number;
+  was_autopick: boolean;
+  picked_at: string;
+};
+
+export type H2HAutopickQueueEntry = {
+  league_id: string;
+  user_id: string;
+  team_id: number;
+  priority: 1 | 2 | 3;
+};
+
+export type H2HScore = {
+  league_id: string;
+  user_id: string;
+  locked_points: number;
+  projected_points: number;
+  teams_alive: number;
+  teams_eliminated: number;
+  champion_owned: boolean;
+  runner_up_owned: boolean;
+  sf_teams_count: number;
+  qf_teams_count: number;
+  total_goals: number;
+  updated_at: string;
+};
+
+// Joined types for UI
+export type H2HDraftPickWithTeam = H2HDraftPick & {
+  team: Team;
+};
+
+export type H2HScoreWithProfile = H2HScore & {
+  profile: Profile;
 };
