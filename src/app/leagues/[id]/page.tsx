@@ -4,6 +4,7 @@ import { InviteLink } from "@/components/leagues/invite-link";
 import { RoundBreakdown } from "@/components/leagues/round-breakdown";
 import { RecentActivity } from "@/components/leagues/recent-activity";
 import { MatchPredictions } from "@/components/leagues/match-predictions";
+import { H2HLeagueView } from "@/components/leagues/h2h-league-view";
 import type { Profile, UserScore } from "@/lib/types/database";
 import { DeleteLeague } from "@/components/leagues/delete-league";
 import { LeagueTabs } from "./league-tabs";
@@ -32,6 +33,40 @@ export default async function LeagueDetailPage({
     .single();
 
   if (!league) notFound();
+
+  if (league.mode === "H2H_DRAFT") {
+    const [{ data: members }, { data: profiles }, { data: draft }] =
+      await Promise.all([
+        supabase
+          .from("league_members")
+          .select("*")
+          .eq("league_id", id)
+          .order("joined_at"),
+        supabase.from("profiles").select("*"),
+        supabase
+          .from("h2h_drafts")
+          .select("*")
+          .eq("league_id", id)
+          .maybeSingle(),
+      ]);
+
+    const profileMap = new Map(
+      (profiles ?? []).map((p: any) => [p.id, p])
+    );
+    const membersWithProfile = (members ?? []).map((m: any) => ({
+      ...m,
+      profile: profileMap.get(m.user_id) ?? null,
+    }));
+
+    return (
+      <H2HLeagueView
+        league={league}
+        draft={draft ?? null}
+        members={membersWithProfile}
+        currentUserId={user?.id}
+      />
+    );
+  }
 
   // Get members, profiles, and scores separately to avoid join failures
   const [{ data: members }, { data: profiles }, { data: scores }] =
