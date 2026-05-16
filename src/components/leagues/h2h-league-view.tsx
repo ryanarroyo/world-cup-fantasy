@@ -2,18 +2,26 @@ import { InviteLink } from "@/components/leagues/invite-link";
 import { DeleteLeague } from "@/components/leagues/delete-league";
 import { H2HLobby } from "@/components/leagues/h2h-lobby";
 import { H2HDraftRoom } from "@/components/leagues/h2h-draft-room";
+import {
+  H2HTournamentView,
+  pickDefaultTournamentTab,
+} from "@/components/leagues/h2h-tournament-view";
 import type {
   H2HAutopickQueueEntry,
   H2HDraft,
   H2HDraftPick,
   H2HDraftStatus,
+  H2HScore,
+  H2HTeamStatus,
   League,
   LeagueMember,
+  MatchWithTeams,
   Profile,
   Team,
 } from "@/lib/types/database";
 
 type MemberWithProfile = LeagueMember & { profile: Profile | null };
+type TournamentTab = "scoreboard" | "rosters" | "bracket";
 
 const STATUS_COPY: Record<
   H2HDraftStatus,
@@ -35,6 +43,10 @@ export function H2HLeagueView({
   teams = [],
   picks = [],
   autopickQueue = [],
+  scores = [],
+  matches = [],
+  teamStatuses = [],
+  tournamentTab,
 }: {
   league: League;
   draft: H2HDraft | null;
@@ -44,23 +56,46 @@ export function H2HLeagueView({
   teams?: Team[];
   picks?: H2HDraftPick[];
   autopickQueue?: H2HAutopickQueueEntry[];
+  scores?: H2HScore[];
+  matches?: MatchWithTeams[];
+  teamStatuses?: H2HTeamStatus[];
+  tournamentTab?: string;
 }) {
   const isOwner = league.owner_id === currentUserId;
   const memberCount = members.length;
   const needsOpponent = memberCount < 2;
   const status: H2HDraftStatus = draft?.status ?? "LOBBY";
   const statusCopy = STATUS_COPY[status];
-  const draftActive = status === "DRAFTING" || status === "COMPLETE";
+  const isDrafting = status === "DRAFTING";
+  const isComplete = status === "COMPLETE";
   const showLobby =
     !needsOpponent &&
     currentUserId !== undefined &&
-    !draftActive &&
+    !isDrafting &&
+    !isComplete &&
     status !== "CANCELLED";
   const showDraftRoom =
-    draftActive &&
+    isDrafting &&
     draft !== null &&
     currentUserId !== undefined &&
     members.length === 2;
+  const showTournament =
+    isComplete &&
+    currentUserId !== undefined &&
+    members.length === 2;
+
+  const resolvedTab: TournamentTab = (() => {
+    if (
+      tournamentTab === "scoreboard" ||
+      tournamentTab === "rosters" ||
+      tournamentTab === "bracket"
+    ) {
+      return tournamentTab;
+    }
+    return pickDefaultTournamentTab(matches);
+  })();
+
+  const showHeaderChrome = !showDraftRoom && !showTournament;
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-6">
@@ -79,7 +114,7 @@ export function H2HLeagueView({
         </div>
       </div>
 
-      {!showDraftRoom && <StatusBanner statusCopy={statusCopy} />}
+      {showHeaderChrome && <StatusBanner statusCopy={statusCopy} />}
 
       {needsOpponent && (
         <div className="mb-6 rounded-xl border border-border bg-card p-4">
@@ -90,7 +125,20 @@ export function H2HLeagueView({
         </div>
       )}
 
-      {showDraftRoom ? (
+      {showTournament ? (
+        <div className="mb-6">
+          <H2HTournamentView
+            league={league}
+            members={members}
+            teams={teams}
+            initialScores={scores}
+            initialMatches={matches}
+            initialTeamStatuses={teamStatuses}
+            initialTab={resolvedTab}
+            currentUserId={currentUserId!}
+          />
+        </div>
+      ) : showDraftRoom ? (
         <div className="mb-6">
           <H2HDraftRoom
             leagueId={league.id}
@@ -157,7 +205,7 @@ export function H2HLeagueView({
         </div>
       )}
 
-      {!showDraftRoom && <RulesCard />}
+      {showHeaderChrome && <RulesCard />}
     </div>
   );
 }

@@ -79,6 +79,10 @@ export default async function LeagueDetailPage({
     let teams: any[] = [];
     let picks: any[] = [];
     let queue: any[] = [];
+    let scores: any[] = [];
+    let matches: any[] = [];
+    let teamStatuses: any[] = [];
+
     if (draftActive) {
       const [
         { data: teamRows },
@@ -105,6 +109,29 @@ export default async function LeagueDetailPage({
       queue = queueRows ?? [];
     }
 
+    if (draft?.status === "COMPLETE") {
+      const [
+        { data: scoreRows },
+        { data: matchRows },
+        { data: statusRows },
+      ] = await Promise.all([
+        supabase
+          .from("h2h_scores")
+          .select("*")
+          .eq("league_id", id),
+        supabase
+          .from("matches")
+          .select(
+            "*, home_team:teams!matches_home_team_id_fkey(*), away_team:teams!matches_away_team_id_fkey(*), winner_team:teams!matches_winner_team_id_fkey(*)"
+          )
+          .order("match_number"),
+        supabase.rpc("h2h_team_statuses", { p_league_id: id }),
+      ]);
+      scores = scoreRows ?? [];
+      matches = matchRows ?? [];
+      teamStatuses = statusRows ?? [];
+    }
+
     return (
       <H2HLeagueView
         league={league}
@@ -115,6 +142,10 @@ export default async function LeagueDetailPage({
         teams={teams}
         picks={picks}
         autopickQueue={queue}
+        scores={scores}
+        matches={matches}
+        teamStatuses={teamStatuses}
+        tournamentTab={tab}
       />
     );
   }

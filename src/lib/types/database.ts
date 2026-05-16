@@ -188,6 +188,25 @@ export type H2HScore = {
   updated_at: string;
 };
 
+export type H2HDepth =
+  | "NOT_ADVANCED"
+  | "R32"
+  | "R16"
+  | "QF"
+  | "SF"
+  | "FINAL"
+  | "CHAMPION";
+
+export type H2HTeamStatus = {
+  team_id: number;
+  user_id: string;
+  pick_number: number;
+  locked_depth: H2HDepth | null;
+  projected_depth: H2HDepth;
+  alive: boolean | null;
+  team_goals: number;
+};
+
 // Joined types for UI
 export type H2HDraftPickWithTeam = H2HDraftPick & {
   team: Team;
