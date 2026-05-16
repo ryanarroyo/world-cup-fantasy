@@ -122,6 +122,22 @@ export function H2HDraftPool({
       </div>
 
       <div className="max-h-[420px] overflow-y-auto p-3">
+        {filtered.length === 0 && (
+          <div className="px-2 py-8 text-center text-xs text-muted-foreground">
+            No teams match your filters.
+            <button
+              type="button"
+              onClick={() => {
+                setSearch("");
+                setGroupFilter("ALL");
+                setPotFilter("ALL");
+              }}
+              className="ml-2 text-primary underline"
+            >
+              Clear
+            </button>
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
           {filtered.map((team) => {
             const picked = pickedTeamIds.has(team.id);

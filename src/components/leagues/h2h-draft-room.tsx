@@ -156,9 +156,13 @@ export function H2HDraftRoom({
     const delay = isMyTurn ? 200 : 2000;
     const handle = setTimeout(async () => {
       lastAutopickPickRef.current = draft.current_pick_number;
-      await supabase.rpc("h2h_autopick_if_expired", {
+      const { error } = await supabase.rpc("h2h_autopick_if_expired", {
         p_league_id: leagueId,
       });
+      if (error) {
+        console.error("[h2h] autopick failed", error);
+        lastAutopickPickRef.current = null;
+      }
     }, delay);
     return () => clearTimeout(handle);
   }, [

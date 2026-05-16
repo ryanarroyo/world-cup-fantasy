@@ -127,8 +127,36 @@ export function H2HTournamentView({
     [initialMatches]
   );
 
+  const tournamentStarted = useMemo(
+    () => initialMatches.some((m) => m.status === "FINISHED"),
+    [initialMatches]
+  );
+
+  const firstKickoff = useMemo(() => {
+    if (tournamentStarted) return null;
+    const next = upcoming[0];
+    return next ? new Date(next.kickoff_at) : null;
+  }, [upcoming, tournamentStarted]);
+
   return (
     <div className="space-y-4">
+      {!tournamentStarted && (
+        <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
+          <p className="font-medium text-foreground">Draft locked in.</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {firstKickoff
+              ? `Tournament kicks off ${firstKickoff.toLocaleString(undefined, {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}. The scoreboard will activate as matches finish.`
+              : "The scoreboard will activate once the tournament begins."}
+          </p>
+        </div>
+      )}
+
       <div className="flex gap-1 rounded-lg border border-border bg-card p-1">
         {TAB_VALUES.map((t) => (
           <button
