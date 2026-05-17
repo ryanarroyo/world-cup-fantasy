@@ -4,6 +4,7 @@ import { InviteLink } from "@/components/leagues/invite-link";
 import { RoundBreakdown } from "@/components/leagues/round-breakdown";
 import { RecentActivity } from "@/components/leagues/recent-activity";
 import { MatchPredictions } from "@/components/leagues/match-predictions";
+import { H2HLeagueView } from "@/components/leagues/h2h-league-view";
 import type { Profile, UserScore } from "@/lib/types/database";
 import { DeleteLeague } from "@/components/leagues/delete-league";
 import { LeagueTabs } from "./league-tabs";
@@ -32,6 +33,126 @@ export default async function LeagueDetailPage({
     .single();
 
   if (!league) notFound();
+
+  if (league.mode === "H2H_DRAFT") {
+    // Best-effort maintenance: cancel a LOBBY past T-24h, and advance the
+    // draft via auto-pick if the turn timer has expired (mitigates the
+    // both-clients-offline stall — every page load by any member is a
+    // chance to unstick the draft). Both RPCs are idempotent and no-op
+    // when conditions aren't met.
+    await Promise.all([
+      supabase.rpc("h2h_maybe_expire_lobby", { p_league_id: id }),
+      supabase.rpc("h2h_autopick_if_expired", { p_league_id: id }),
+    ]);
+
+    const [
+      { data: members },
+      { data: profiles },
+      { data: draft },
+      { data: readyStates },
+    ] = await Promise.all([
+      supabase
+        .from("league_members")
+        .select("*")
+        .eq("league_id", id)
+        .order("joined_at"),
+      supabase.from("profiles").select("*"),
+      supabase
+        .from("h2h_drafts")
+        .select("*")
+        .eq("league_id", id)
+        .maybeSingle(),
+      supabase
+        .from("h2h_ready_states")
+        .select("*")
+        .eq("league_id", id),
+    ]);
+
+    const profileMap = new Map(
+      (profiles ?? []).map((p: any) => [p.id, p])
+    );
+    const membersWithProfile = (members ?? []).map((m: any) => ({
+      ...m,
+      profile: profileMap.get(m.user_id) ?? null,
+    }));
+    const readyUserIds = (readyStates ?? []).map((r: any) => r.user_id);
+
+    const draftActive =
+      draft?.status === "DRAFTING" || draft?.status === "COMPLETE";
+
+    let teams: any[] = [];
+    let picks: any[] = [];
+    let queue: any[] = [];
+    let scores: any[] = [];
+    let matches: any[] = [];
+    let teamStatuses: any[] = [];
+
+    if (draftActive) {
+      const [
+        { data: teamRows },
+        { data: pickRows },
+        { data: queueRows },
+      ] = await Promise.all([
+        supabase.from("teams").select("*").order("name"),
+        supabase
+          .from("h2h_draft_picks")
+          .select("*")
+          .eq("league_id", id)
+          .order("pick_number"),
+        user?.id
+          ? supabase
+              .from("h2h_autopick_queue")
+              .select("*")
+              .eq("league_id", id)
+              .eq("user_id", user.id)
+              .order("priority")
+          : Promise.resolve({ data: [] }),
+      ]);
+      teams = teamRows ?? [];
+      picks = pickRows ?? [];
+      queue = queueRows ?? [];
+    }
+
+    if (draft?.status === "COMPLETE") {
+      const [
+        { data: scoreRows },
+        { data: matchRows },
+        { data: statusRows },
+      ] = await Promise.all([
+        supabase
+          .from("h2h_scores")
+          .select("*")
+          .eq("league_id", id),
+        supabase
+          .from("matches")
+          .select(
+            "*, home_team:teams!matches_home_team_id_fkey(*), away_team:teams!matches_away_team_id_fkey(*), winner_team:teams!matches_winner_team_id_fkey(*)"
+          )
+          .order("match_number"),
+        supabase.rpc("h2h_team_statuses", { p_league_id: id }),
+      ]);
+      scores = scoreRows ?? [];
+      matches = matchRows ?? [];
+      teamStatuses = statusRows ?? [];
+    }
+
+    return (
+      <H2HLeagueView
+        league={league}
+        draft={draft ?? null}
+        members={membersWithProfile}
+        readyUserIds={readyUserIds}
+        currentUserId={user?.id}
+        teams={teams}
+        picks={picks}
+        autopickQueue={queue}
+        scores={scores}
+        matches={matches}
+        teamStatuses={teamStatuses}
+        tournamentTab={tab}
+      />
+    );
+  }
 
   // Get members, profiles, and scores separately to avoid join failures
   const [{ data: members }, { data: profiles }, { data: scores }] =

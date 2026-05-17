@@ -34,10 +34,15 @@ export default async function LeaguesPage() {
   let leagues: (League & {
     member_count: number;
     members: { display_name: string; avatar_url: string | null }[];
+    draft_status: string | null;
   })[] = [];
   if (allIds.length > 0) {
     // Fetch leagues and member profiles separately (PostgREST doesn't support count + nested select)
-    const [{ data: leagueData, error: leagueErr }, { data: memberData, error: memberDataErr }] = await Promise.all([
+    const [
+      { data: leagueData },
+      { data: memberData },
+      { data: draftData },
+    ] = await Promise.all([
       supabase
         .from("leagues")
         .select("*, league_members(count)")
@@ -45,6 +50,10 @@ export default async function LeaguesPage() {
       supabase
         .from("league_members")
         .select("league_id, profile:profiles(display_name, avatar_url)")
+        .in("league_id", allIds),
+      supabase
+        .from("h2h_drafts")
+        .select("league_id, status")
         .in("league_id", allIds),
     ]);
 
@@ -54,10 +63,15 @@ export default async function LeaguesPage() {
       return acc;
     }, {});
 
+    const draftStatusByLeague = new Map(
+      (draftData ?? []).map((d: any) => [d.league_id, d.status])
+    );
+
     leagues = (leagueData ?? []).map((l: any) => ({
       ...l,
       member_count: l.league_members?.[0]?.count ?? 0,
       members: membersByLeague[l.id] ?? [],
+      draft_status: draftStatusByLeague.get(l.id) ?? null,
     }));
   }
 
@@ -101,12 +115,25 @@ export default async function LeaguesPage() {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-foreground">
-                    {league.name}
-                  </h3>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="font-semibold text-foreground">
+                      {league.name}
+                    </h3>
+                    {league.mode === "H2H_DRAFT" && (
+                      <span className="rounded-full bg-secondary/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-secondary">
+                        H2H
+                      </span>
+                    )}
+                    {league.mode === "H2H_DRAFT" && league.draft_status && (
+                      <DraftStatusPill status={league.draft_status} />
+                    )}
+                  </div>
                   <p className="mt-0.5 text-sm text-muted-foreground">
-                    {league.member_count}{" "}
-                    {league.member_count === 1 ? "member" : "members"}
+                    {league.mode === "H2H_DRAFT"
+                      ? `${league.member_count} / 2 players`
+                      : `${league.member_count} ${
+                          league.member_count === 1 ? "member" : "members"
+                        }`}
                     {league.owner_id === user!.id && (
                       <span className="ml-2 text-xs text-secondary">Owner</span>
                     )}
@@ -155,5 +182,39 @@ export default async function LeaguesPage() {
         </div>
       )}
     </div>
+  );
+}
+
+function DraftStatusPill({ status }: { status: string }) {
+  const config: Record<string, { label: string; className: string }> = {
+    LOBBY: {
+      label: "Lobby",
+      className: "bg-muted text-muted-foreground",
+    },
+    READY: {
+      label: "Starting",
+      className: "bg-primary/10 text-primary",
+    },
+    DRAFTING: {
+      label: "Drafting",
+      className: "bg-primary/10 text-primary",
+    },
+    COMPLETE: {
+      label: "Drafted",
+      className: "bg-secondary/10 text-secondary",
+    },
+    CANCELLED: {
+      label: "Cancelled",
+      className: "bg-destructive/10 text-destructive",
+    },
+  };
+  const cfg = config[status];
+  if (!cfg) return null;
+  return (
+    <span
+      className={`rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${cfg.className}`}
+    >
+      {cfg.label}
+    </span>
   );
 }
