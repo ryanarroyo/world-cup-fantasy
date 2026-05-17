@@ -52,7 +52,15 @@ export function H2HDraftRoom({
   const [pickPending, setPickPending] = useState(false);
   const [pickError, setPickError] = useState<string | null>(null);
   const [cancelPending, setCancelPending] = useState(false);
-  const [nowTick, setNowTick] = useState(() => Date.now());
+  // Initial value is derived deterministically from the turn-started timestamp
+  // so SSR and the first client render produce identical HTML (avoids a
+  // hydration mismatch from comparing server vs client wall clocks). The
+  // 1-second interval below replaces this with real wall-clock time after
+  // hydration completes.
+  const [nowTick, setNowTick] = useState<number>(() => {
+    const startedAt = initialDraft.current_turn_started_at;
+    return startedAt ? new Date(startedAt).getTime() : 0;
+  });
 
   const firstPickerId = draft.first_pick_user_id;
   const secondPickerId =
@@ -136,6 +144,9 @@ export function H2HDraftRoom({
   // ---- 1-second ticker for the timer ----------------------------------------
   useEffect(() => {
     if (draft.status !== "DRAFTING") return;
+    // Snap to real wall-clock time immediately after hydration, then keep
+    // ticking every second.
+    setNowTick(Date.now());
     const id = setInterval(() => setNowTick(Date.now()), 1000);
     return () => clearInterval(id);
   }, [draft.status]);

@@ -264,7 +264,10 @@ function SwingPanel({
                     className="h-3 w-4"
                   />
                 )}
-                <span className="ml-auto text-xs text-muted-foreground">
+                <span
+                  className="ml-auto text-xs text-muted-foreground"
+                  suppressHydrationWarning
+                >
                   {new Date(match.kickoff_at).toLocaleString(undefined, {
                     weekday: "short",
                     hour: "numeric",

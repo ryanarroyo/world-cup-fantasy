@@ -140,15 +140,23 @@ export function H2HTournamentView({
         <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
           <p className="font-medium text-foreground">Draft locked in.</p>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {firstKickoff
-              ? `Tournament kicks off ${firstKickoff.toLocaleString(undefined, {
-                  weekday: "short",
-                  month: "short",
-                  day: "numeric",
-                  hour: "numeric",
-                  minute: "2-digit",
-                })}. The scoreboard will activate as matches finish.`
-              : "The scoreboard will activate once the tournament begins."}
+            {firstKickoff ? (
+              <>
+                Tournament kicks off{" "}
+                <span suppressHydrationWarning>
+                  {firstKickoff.toLocaleString(undefined, {
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })}
+                </span>
+                . The scoreboard will activate as matches finish.
+              </>
+            ) : (
+              "The scoreboard will activate once the tournament begins."
+            )}
           </p>
         </div>
       )}

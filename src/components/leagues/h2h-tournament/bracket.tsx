@@ -90,7 +90,7 @@ function MatchCard({
             ? `Group ${match.group_letter}`
             : `#${match.match_number}`}
         </span>
-        <span>
+        <span suppressHydrationWarning>
           {finished
             ? "Final"
             : new Date(match.kickoff_at).toLocaleString(undefined, {
