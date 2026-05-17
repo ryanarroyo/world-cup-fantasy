@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { H2HScoreboard } from "@/components/leagues/h2h-tournament/scoreboard";
 import { H2HRosters } from "@/components/leagues/h2h-tournament/rosters";
 import { H2HBracket } from "@/components/leagues/h2h-tournament/bracket";
+import type { TournamentTab } from "@/lib/h2h/tabs";
 import type {
   H2HScore,
   H2HTeamStatus,
@@ -17,8 +18,6 @@ import type {
 } from "@/lib/types/database";
 
 type MemberWithProfile = LeagueMember & { profile: Profile | null };
-
-type TournamentTab = "scoreboard" | "rosters" | "bracket";
 
 const TAB_VALUES: TournamentTab[] = ["scoreboard", "rosters", "bracket"];
 
@@ -203,9 +202,3 @@ export function H2HTournamentView({
   );
 }
 
-export function pickDefaultTournamentTab(
-  matches: MatchWithTeams[]
-): TournamentTab {
-  const anyFinished = matches.some((m) => m.status === "FINISHED");
-  return anyFinished ? "scoreboard" : "bracket";
-}

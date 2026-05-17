@@ -2,10 +2,8 @@ import { InviteLink } from "@/components/leagues/invite-link";
 import { DeleteLeague } from "@/components/leagues/delete-league";
 import { H2HLobby } from "@/components/leagues/h2h-lobby";
 import { H2HDraftRoom } from "@/components/leagues/h2h-draft-room";
-import {
-  H2HTournamentView,
-  pickDefaultTournamentTab,
-} from "@/components/leagues/h2h-tournament-view";
+import { H2HTournamentView } from "@/components/leagues/h2h-tournament-view";
+import { pickDefaultTournamentTab, type TournamentTab } from "@/lib/h2h/tabs";
 import type {
   H2HAutopickQueueEntry,
   H2HDraft,
@@ -21,7 +19,6 @@ import type {
 } from "@/lib/types/database";
 
 type MemberWithProfile = LeagueMember & { profile: Profile | null };
-type TournamentTab = "scoreboard" | "rosters" | "bracket";
 
 const STATUS_COPY: Record<
   H2HDraftStatus,
