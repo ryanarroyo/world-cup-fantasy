@@ -43,59 +43,75 @@ export function H2HLobby({
   const meReady = readyUserIds.has(currentUserId);
 
   useEffect(() => {
-    const channel = supabase.channel(`h2h-lobby:${leagueId}`, {
-      config: { presence: { key: presenceKeyRef.current } },
-    });
+    let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
 
-    channel
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "h2h_ready_states",
-          filter: `league_id=eq.${leagueId}`,
-        },
-        (payload) => {
-          setReadyUserIds((prev) => {
-            const next = new Set(prev);
-            if (payload.eventType === "INSERT") {
-              next.add((payload.new as { user_id: string }).user_id);
-            } else if (payload.eventType === "DELETE") {
-              next.delete((payload.old as { user_id: string }).user_id);
-            }
-            return next;
-          });
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "h2h_drafts",
-          filter: `league_id=eq.${leagueId}`,
-        },
-        (payload) => {
-          const next = payload.new as { status: H2HDraftStatus };
-          setDraftStatus(next.status);
-          if (next.status === "DRAFTING") {
-            router.refresh();
-          }
-        }
-      )
-      .on("presence", { event: "sync" }, () => {
-        const state = channel.presenceState();
-        setPresentUserIds(new Set(Object.keys(state)));
-      })
-      .subscribe(async (status) => {
-        if (status === "SUBSCRIBED") {
-          await channel.track({ online_at: new Date().toISOString() });
-        }
+    (async () => {
+      // Wait for the auth session to load from cookies and push the JWT to
+      // Realtime *before* subscribing — otherwise the channel can race the
+      // session load and end up authorized as anon, which RLS rejects.
+      const { data } = await supabase.auth.getSession();
+      if (cancelled) return;
+      if (data.session?.access_token) {
+        await supabase.realtime.setAuth(data.session.access_token);
+      }
+      if (cancelled) return;
+
+      channel = supabase.channel(`h2h-lobby:${leagueId}`, {
+        config: { presence: { key: presenceKeyRef.current } },
       });
 
+      channel
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "h2h_ready_states",
+            filter: `league_id=eq.${leagueId}`,
+          },
+          (payload) => {
+            setReadyUserIds((prev) => {
+              const next = new Set(prev);
+              if (payload.eventType === "INSERT") {
+                next.add((payload.new as { user_id: string }).user_id);
+              } else if (payload.eventType === "DELETE") {
+                next.delete((payload.old as { user_id: string }).user_id);
+              }
+              return next;
+            });
+          }
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "h2h_drafts",
+            filter: `league_id=eq.${leagueId}`,
+          },
+          (payload) => {
+            const next = payload.new as { status: H2HDraftStatus };
+            setDraftStatus(next.status);
+            if (next.status === "DRAFTING") {
+              router.refresh();
+            }
+          }
+        )
+        .on("presence", { event: "sync" }, () => {
+          const state = channel!.presenceState();
+          setPresentUserIds(new Set(Object.keys(state)));
+        })
+        .subscribe(async (status) => {
+          if (status === "SUBSCRIBED" && channel) {
+            await channel.track({ online_at: new Date().toISOString() });
+          }
+        });
+    })();
+
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
     };
   }, [supabase, leagueId, router]);
 
