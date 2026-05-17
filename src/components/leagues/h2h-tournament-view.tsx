@@ -73,36 +73,49 @@ export function H2HTournamentView({
     return { ownerBorderColors: border, ownerRingColors: ring };
   }, [members]);
 
-  // Realtime subscriptions: scores change frequently as matches finish;
-  // match changes refresh the page so all match data + statuses re-fetch.
+  // Realtime subscriptions: scores change frequently as matches finish.
+  // Match updates are already handled by RealtimeProvider in the root layout
+  // (it router.refresh()es on every matches UPDATE), so we don't duplicate
+  // the listener here.
   useEffect(() => {
-    const channel = supabase
-      .channel(`h2h-tournament:${league.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "h2h_scores",
-          filter: `league_id=eq.${league.id}`,
-        },
-        (payload) => {
-          if (payload.eventType === "DELETE") return;
-          const next = payload.new as H2HScore;
-          setScores((prev) => {
-            const filtered = prev.filter((s) => s.user_id !== next.user_id);
-            return [...filtered, next];
-          });
-        }
-      )
-      // Match updates are already handled by RealtimeProvider in the root
-      // layout (it router.refresh()es on every matches UPDATE), so we don't
-      // duplicate the listener here. The h2h_scores subscription above keeps
-      // the scoreboard live in place; team statuses + projections refresh
-      // when the layout's listener triggers a server re-render.
-      .subscribe();
+    let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    (async () => {
+      // Push the user's JWT to Realtime before subscribing so RLS evaluates
+      // h2h_scores events as the authenticated user instead of anon.
+      const { data } = await supabase.auth.getSession();
+      if (cancelled) return;
+      if (data.session?.access_token) {
+        await supabase.realtime.setAuth(data.session.access_token);
+      }
+      if (cancelled) return;
+
+      channel = supabase
+        .channel(`h2h-tournament:${league.id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "h2h_scores",
+            filter: `league_id=eq.${league.id}`,
+          },
+          (payload) => {
+            if (payload.eventType === "DELETE") return;
+            const next = payload.new as H2HScore;
+            setScores((prev) => {
+              const filtered = prev.filter((s) => s.user_id !== next.user_id);
+              return [...filtered, next];
+            });
+          }
+        )
+        .subscribe();
+    })();
+
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
     };
   }, [supabase, league.id]);
 

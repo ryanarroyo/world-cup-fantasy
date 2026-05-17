@@ -101,43 +101,60 @@ export function H2HDraftRoom({
 
   // ---- Realtime subscriptions ----------------------------------------------
   useEffect(() => {
-    const channel = supabase
-      .channel(`h2h-draft:${leagueId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "h2h_drafts",
-          filter: `league_id=eq.${leagueId}`,
-        },
-        (payload) => {
-          setDraft(payload.new as H2HDraft);
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "h2h_draft_picks",
-          filter: `league_id=eq.${leagueId}`,
-        },
-        (payload) => {
-          const pick = payload.new as H2HDraftPick;
-          setPicks((prev) => {
-            if (prev.some((p) => p.id === pick.id)) return prev;
-            return [...prev, pick].sort(
-              (a, b) => a.pick_number - b.pick_number
-            );
-          });
-          setSelectedTeamId((curr) => (curr === pick.team_id ? null : curr));
-        }
-      )
-      .subscribe();
+    let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    (async () => {
+      // Push the user's JWT to Realtime before subscribing so RLS evaluates
+      // events as the authenticated user instead of anon (otherwise non-host
+      // sessions race the auth load and end up with anon-filtered events,
+      // i.e. no events at all).
+      const { data } = await supabase.auth.getSession();
+      if (cancelled) return;
+      if (data.session?.access_token) {
+        await supabase.realtime.setAuth(data.session.access_token);
+      }
+      if (cancelled) return;
+
+      channel = supabase
+        .channel(`h2h-draft:${leagueId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "h2h_drafts",
+            filter: `league_id=eq.${leagueId}`,
+          },
+          (payload) => {
+            setDraft(payload.new as H2HDraft);
+          }
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "h2h_draft_picks",
+            filter: `league_id=eq.${leagueId}`,
+          },
+          (payload) => {
+            const pick = payload.new as H2HDraftPick;
+            setPicks((prev) => {
+              if (prev.some((p) => p.id === pick.id)) return prev;
+              return [...prev, pick].sort(
+                (a, b) => a.pick_number - b.pick_number
+              );
+            });
+            setSelectedTeamId((curr) => (curr === pick.team_id ? null : curr));
+          }
+        )
+        .subscribe();
+    })();
 
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
     };
   }, [supabase, leagueId]);
 
